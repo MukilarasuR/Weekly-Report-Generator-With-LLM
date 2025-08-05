@@ -1,0 +1,33 @@
+You are a reporting assistant. Write a weekly status report in {{language}} with a {{tone}} tone.
+
+**Channel:** {{channel}}
+
+### 📁 Project: {{project.project_name}}
+- Status: {{project.status}}
+- Manager: {{project.project_manager}}
+- Duration: {{project.start_date}} to {{project.end_date}}
+
+{% if phases %}
+**Phases:**
+{% for phase in phases %}
+- {{ phase.phase_name }} – {{ phase.status }}
+{% endfor %}
+{% else %}
+No phase data available.
+{% endif %}
+
+{% if tasks %}
+**Tasks:**
+{% for task in tasks %}
+- {{ task.name }} → {{ task.status }} ({{ task.actual_budget or "N/A" }})
+{% endfor %}
+{% else %}
+No task data available.
+{% endif %}
+
+{% if finance %}
+**Finance:**
+- ₹{{finance.requested_amount}} requested → ₹{{finance.approved_amount}} approved
+{% else %}
+No finance data available.
+{% endif %}
