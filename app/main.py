@@ -2,27 +2,35 @@ from fastapi import FastAPI, Depends, Query
 from sqlalchemy.orm import Session
 from app.db.sample_data import load_sample_data
 from app.db.database import SessionLocal, get_db
-from app.scheduler import start_scheduler
 from app.services.report_service import generate_llm_report
 from app.api.project import router as project_router
+import os
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # 🚀 FastAPI Application
-# ------------------------------------------------------------------------------   
+# --------------------------------------------------------------------------
 app = FastAPI()
 
-# ------------------------------------------------------------------------------
-# 🚀 Startup Event — Load Sample Data + Start Background Scheduler
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 🧠 Dynamically load the right scheduler function
+# --------------------------------------------------------------------------
+if os.getenv("ENV", "development").lower() == "production":
+    from app.scheduler import start_main_scheduler as start_scheduler
+else:
+    from app.scheduler import start_test_scheduler as start_scheduler
+
+# --------------------------------------------------------------------------
+# 🚀 Startup Event — Load Sample Data + Start Scheduler
+# --------------------------------------------------------------------------
 @app.on_event("startup")
 def startup_events():
     db = SessionLocal()
     load_sample_data(db)
     start_scheduler()
 
-# ------------------------------------------------------------------------------
-# 📨 API Endpoint: Generate LLM-Based Weekly Report
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# 📬 API Endpoint to Manually Trigger Report
+# --------------------------------------------------------------------------
 @app.get("/api/report")
 def get_weekly_report(
     project_id: int = Query(..., description="ID of the project"),
@@ -31,9 +39,6 @@ def get_weekly_report(
     tone: str = Query("Formal", enum=["Formal", "Informal"]),
     db: Session = Depends(get_db)
 ):
-    """
-    Generate a weekly project report using LLM, formatted based on channel, language, and tone.
-    """
     return {
         "report": generate_llm_report(
             project_id=project_id,

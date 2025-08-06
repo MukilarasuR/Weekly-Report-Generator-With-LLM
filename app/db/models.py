@@ -5,6 +5,9 @@ import enum
 
 Base = declarative_base()
 
+# ----------------------------------------------------
+# ✅ ENUMS
+# ----------------------------------------------------
 class ProjectStatus(str, enum.Enum):
     NOT_STARTED = "not_started"
     IN_PROGRESS = "in_progress"
@@ -20,25 +23,55 @@ class TaskStatus(str, enum.Enum):
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
 
+# ----------------------------------------------------
+# ✅ USER (Manager, Phase Manager, etc.)
+# ----------------------------------------------------
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    email = Column(String, unique=True, index=True)
+
+# ----------------------------------------------------
+# ✅ PROJECT
+# ----------------------------------------------------
 class Project(Base):
     __tablename__ = "projects"
     id = Column(Integer, primary_key=True)
     name = Column(String)
     status = Column(Enum(ProjectStatus))
-    manager = Column(String)
+    manager_id = Column(Integer, ForeignKey("users.id"))
     start_date = Column(Date)
     end_date = Column(Date)
-    phases = relationship("Phase", back_populates="project")
 
+    # Relationships
+    manager = relationship("User", foreign_keys=[manager_id])
+    phases = relationship("Phase", back_populates="project")
+    finance_requests = relationship("FinanceRequest", back_populates="project")
+
+# ----------------------------------------------------
+# ✅ PHASE
+# ----------------------------------------------------
 class Phase(Base):
     __tablename__ = "phases"
     id = Column(Integer, primary_key=True)
     name = Column(String)
     status = Column(Enum(PhaseStatus))
     project_id = Column(Integer, ForeignKey("projects.id"))
+
+    phase_manager_id = Column(Integer, ForeignKey("users.id"))
+    assistant_manager_id = Column(Integer, ForeignKey("users.id"))
+
+    # Relationships
     project = relationship("Project", back_populates="phases")
     tasks = relationship("Task", back_populates="phase")
 
+    phase_manager = relationship("User", foreign_keys=[phase_manager_id])
+    assistant_manager = relationship("User", foreign_keys=[assistant_manager_id])
+
+# ----------------------------------------------------
+# ✅ TASK
+# ----------------------------------------------------
 class Task(Base):
     __tablename__ = "tasks"
     id = Column(Integer, primary_key=True)
@@ -46,6 +79,21 @@ class Task(Base):
     status = Column(Enum(TaskStatus))
     estimated_budget = Column(BigInteger)
     actual_budget = Column(BigInteger)
+    due_date = Column(Date)
     phase_id = Column(Integer, ForeignKey("phases.id"))
+
+    # Relationships
     phase = relationship("Phase", back_populates="tasks")
 
+# ----------------------------------------------------
+# ✅ FINANCE REQUEST
+# ----------------------------------------------------
+class FinanceRequest(Base):
+    __tablename__ = "finance_requests"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id"))
+    requested_amount = Column(BigInteger)
+    approved_amount = Column(BigInteger)
+    request_date = Column(Date)
+
+    project = relationship("Project", back_populates="finance_requests")

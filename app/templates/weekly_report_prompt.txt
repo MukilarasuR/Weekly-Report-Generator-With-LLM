@@ -1,33 +1,75 @@
-You are a reporting assistant. Write a weekly status report in {{language}} with a {{tone}} tone.
+You are a reporting assistant. Write a clear and professional weekly project status report email in {{language}} using a {{tone}} tone.
 
-**Channel:** {{channel}}
+This report is for: {{channel}}  
+Target audience: Project and Phase Managers
 
-### 📁 Project: {{project.project_name}}
+---
+
+📌 PROJECT DETAILS:
+- Project: {{project.project_name}}
 - Status: {{project.status}}
 - Manager: {{project.project_manager}}
-- Duration: {{project.start_date}} to {{project.end_date}}
+- Duration: {{project.start_date.strftime('%d %B %Y')}} to {{project.end_date.strftime('%d %B %Y')}}
 
-{% if phases %}
-**Phases:**
+---
+
+📊 PHASES:
+
 {% for phase in phases %}
-- {{ phase.phase_name }} – {{ phase.status }}
+🔸 {{ phase.phase_name }} – {{ phase.status }}
+{% set phase_tasks = tasks | selectattr("phase_id", "equalto", phase.id) | list %}
+{% if phase_tasks %}
+     Milestones:
+{% for task in phase_tasks %}
+         - {{ task.name }} – {{ task.status }}{% if task.due_date %} (Due: {{ task.due_date.strftime('%d %b %Y') }}){% endif %}
 {% endfor %}
 {% else %}
-No phase data available.
+     Milestones:
+         - No milestones found.
 {% endif %}
-
-{% if tasks %}
-**Tasks:**
-{% for task in tasks %}
-- {{ task.name }} → {{ task.status }} ({{ task.actual_budget or "N/A" }})
 {% endfor %}
-{% else %}
-No task data available.
-{% endif %}
 
+---
+
+💰 FINANCE SUMMARY:
 {% if finance %}
-**Finance:**
-- ₹{{finance.requested_amount}} requested → ₹{{finance.approved_amount}} approved
+- Requested: ₹{{finance.requested_amount or 'N/A'}}
+- Approved: ₹{{finance.approved_amount or 'N/A'}}
 {% else %}
-No finance data available.
+⚠️ No financial data available for this report.
 {% endif %}
+
+---
+
+⚠️ ALERTS:
+{% if overdue_tasks %}
+🚨 Overdue Tasks:
+{% for task in overdue_tasks %}
+- {{ task.name }} (Phase: {{ task.phase_name }}, Due: {{ task.due_date.strftime('%d %b %Y') }})
+{% endfor %}
+{% endif %}
+
+{% if upcoming_tasks %}
+📅 Upcoming Deadlines (Next 7 Days):
+{% for task in upcoming_tasks %}
+- {{ task.name }} (Phase: {{ task.phase_name }}, Due: {{ task.due_date.strftime('%d %b %Y') }})
+{% endfor %}
+{% endif %}
+
+{% if not overdue_tasks and not upcoming_tasks %}
+No alerts related to deadlines.
+{% endif %}
+
+---
+
+📝 SUMMARY:
+{{summary_text or "Please generate a summary based on the phase and task progress."}}
+
+---
+
+Kindly contact the respective phase managers for in-depth updates.  
+Should you have any questions or require further information, please feel free to reach out.
+
+Best regards,  
+{{sender_name or "[Your Name]"}}  
+{{sender_position or "Project Analyst"}}
