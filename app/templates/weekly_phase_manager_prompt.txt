@@ -1,0 +1,57 @@
+Weekly Project Report  
+Date: {{ report_date.strftime('%d %B %Y') }}
+
+1. Project Overview:
+- Project Name: {{ project.name }}
+- Project Manager: {{ project.manager.name }}
+- Project Status: {{ project.status }}
+
+2. Key Accomplishments this Week:
+{% for item in accomplishments %}
+- {{ item }}
+{% endfor %}
+
+3. Tasks Completed this Week:
+{% for task in tasks_completed %}
+- {{ task.name }} (Completed on {{ task.completed_date.strftime('%d %b %Y') if task.completed_date else 'N/A' }})
+{% endfor %}
+
+4. Upcoming Tasks for Next Week:
+{% for task in upcoming_tasks %}
+- {{ task.name }} (Due: {{ task.due_date.strftime('%d %b %Y') }})
+{% endfor %}
+
+5. Risks and Issues:
+{% if risks %}
+{% for risk in risks %}
+- {{ risk }}
+{% endfor %}
+{% else %}
+- None reported this week.
+{% endif %}
+
+6. Milestones:
+{% for milestone in milestones %}
+- {{ milestone.name }} – {{ milestone.status }}
+{% endfor %}
+
+7. Budget and Resource Updates:
+- Budget: ₹{{ budget_status }}
+- Resources: {{ resource_status }}
+
+8. Recommendations:
+{% for rec in recommendations %}
+- {{ rec }}
+{% endfor %}
+
+9. Next Weekly Meeting Agenda:
+{% for agenda in agenda_items %}
+- {{ agenda }}
+{% endfor %}
+
+10. Additional Notes:
+{% for note in notes %}
+- {{ note }}
+{% endfor %}
+
+Please let me know if you need any further information or details.

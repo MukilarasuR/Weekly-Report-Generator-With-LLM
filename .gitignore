@@ -15,4 +15,5 @@ __pycache__/
 credentails.json
 get_gmail_token.py
 token.pkl
-
+# In .gitignore
+app/utils/token.pickle

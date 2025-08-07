@@ -1,5 +1,4 @@
 import os
-import trace
 import traceback
 import openai
 from dotenv import load_dotenv
@@ -18,7 +17,7 @@ def render_llm_prompt(template_path: str, context: dict) -> str:
         return f"❌ Prompt Rendering Error: {str(e)}"
 
 # Generate LLM-based report from prompt
-def generate_llm_report(prompt: str, model: str = "gpt-3.5-turbo") -> str:
+def generate_llm_report(prompt: str, model: str = "gpt-4.1-2025-04-14") -> str:
     try:
         response = openai.ChatCompletion.create(
             model=model,
