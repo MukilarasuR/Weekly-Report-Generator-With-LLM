@@ -13,114 +13,96 @@ from app.db.models import (
 
 def load_sample_data(db: Session):
     # Check if sample data already exists
-    existing_user = db.query(User).filter(User.email == "arjun.mehta@company.com").first()
-    if existing_user:
+    if db.query(User).filter(User.email == "arjun.mehta@company.com").first():
         print("Sample data already exists, skipping...")
         return
 
-    # -------------------------------------
-    # ✅ 1. Users (project manager + phase managers)
-    # -------------------------------------
-    project_manager = User(name="Arjun Mehta", email="arjun.mehta@company.com")
-    foundation_manager = User(name="Priya Sharma", email="priya.sharma@company.com")
-    structural_manager = User(name="Rahul Verma", email="rahul.verma@company.com")
-    interiors_manager = User(name="Sneha Kapoor", email="sneha.kapoor@company.com")
+    # 1️⃣ Create all users (project + phase managers)
+    users = [
+        User(name="Arjun Mehta", email="balavedhaab@gmail.com"),                # Project 1
+        User(name="Priya Sharma", email="sak31bala@gmail.com"),
+        User(name="Rahul Verma", email="abhijithsantosh234@gmail.com"),
 
-    db.add_all([project_manager, foundation_manager, structural_manager, interiors_manager])
+        User(name="Neha Reddy", email="neha.reddy@company.com"),                # Project 2
+        User(name="Varun Patel", email="varun.patel@company.com"),
+        User(name="Divya Kaur", email="divya.kaur@company.com"),
+
+        User(name="Karan Singh", email="karan.singh@company.com"),              # Project 3
+        User(name="Ayesha Jain", email="ayesha.jain@company.com"),
+        User(name="Rohan Deshmukh", email="rohan.deshmukh@company.com"),
+    ]
+    db.add_all(users)
     db.commit()
 
-    # -------------------------------------
-    # ✅ 2. Project
-    # -------------------------------------
-    project = Project(
+    # Map users
+    (
+        arjun, priya, rahul,
+        neha, varun, divya,
+        karan, ayesha, rohan
+    ) = users
+
+    # 2️⃣ Create Projects
+    project1 = Project(
         name="Mall Construction",
         status=ProjectStatus.IN_PROGRESS,
-        manager_id=project_manager.id,
+        manager_id=arjun.id,
         start_date=date(2024, 1, 10),
         end_date=date(2025, 12, 31)
     )
-    db.add(project)
+    project2 = Project(
+        name="Airport Expansion",
+        status=ProjectStatus.NOT_STARTED,
+        manager_id=neha.id,
+        start_date=date(2024, 5, 1),
+        end_date=date(2026, 5, 31)
+    )
+    project3 = Project(
+        name="IT Tower Renovation",
+        status=ProjectStatus.IN_PROGRESS,
+        manager_id=karan.id,
+        start_date=date(2023, 7, 1),
+        end_date=date(2024, 9, 15)
+    )
+    db.add_all([project1, project2, project3])
     db.commit()
 
-    # -------------------------------------
-    # ✅ 3. Phases with phase managers
-    # -------------------------------------
-    phase1 = Phase(
-        name="Foundation",
-        status=PhaseStatus.COMPLETED,
-        project_id=project.id,
-        phase_manager_id=foundation_manager.id
-    )
-    phase2 = Phase(
-        name="Structural Work",
-        status=PhaseStatus.IN_PROGRESS,
-        project_id=project.id,
-        phase_manager_id=structural_manager.id
-    )
-    phase3 = Phase(
-        name="Interiors",
-        status=PhaseStatus.NOT_STARTED,
-        project_id=project.id,
-        phase_manager_id=interiors_manager.id
-    )
-    db.add_all([phase1, phase2, phase3])
+    # 3️⃣ Phases for each project
+    phases = [
+        Phase(name="Foundation", status=PhaseStatus.COMPLETED, project_id=project1.id, phase_manager_id=priya.id),
+        Phase(name="Structural Work", status=PhaseStatus.IN_PROGRESS, project_id=project1.id, phase_manager_id=rahul.id),
+        Phase(name="Interiors", status=PhaseStatus.NOT_STARTED, project_id=project1.id, phase_manager_id=priya.id),
+
+        Phase(name="Planning", status=PhaseStatus.NOT_STARTED, project_id=project2.id, phase_manager_id=varun.id),
+        Phase(name="Terminal Setup", status=PhaseStatus.NOT_STARTED, project_id=project2.id, phase_manager_id=divya.id),
+
+        Phase(name="Demolition", status=PhaseStatus.COMPLETED, project_id=project3.id, phase_manager_id=ayesha.id),
+        Phase(name="Wiring & HVAC", status=PhaseStatus.IN_PROGRESS, project_id=project3.id, phase_manager_id=rohan.id),
+    ]
+    db.add_all(phases)
     db.commit()
 
-    # -------------------------------------
-    # ✅ 4. Tasks with due dates
-    # -------------------------------------
-    task1 = Task(
-        name="Lay foundation",
-        status=TaskStatus.COMPLETED,
-        estimated_budget=1000000,
-        actual_budget=1000000,
-        due_date=date(2024, 3, 10),
-        phase_id=phase1.id
-    )
-    task2 = Task(
-        name="Waterproofing base",
-        status=TaskStatus.COMPLETED,
-        estimated_budget=150000,
-        actual_budget=150000,
-        due_date=date(2024, 4, 5),
-        phase_id=phase1.id
-    )
-    task3 = Task(
-        name="Concrete frame setup",
-        status=TaskStatus.IN_PROGRESS,
-        estimated_budget=2000000,
-        actual_budget=500000,
-        due_date=date(2025, 8, 10),  # Upcoming
-        phase_id=phase2.id
-    )
-    task4 = Task(
-        name="Beam testing",
-        status=TaskStatus.NOT_STARTED,
-        estimated_budget=500000,
-        actual_budget=0,
-        due_date=date(2025, 7, 31),  # Overdue
-        phase_id=phase2.id
-    )
-    task5 = Task(
-        name="HVAC Layout",
-        status=TaskStatus.NOT_STARTED,
-        estimated_budget=800000,
-        actual_budget=0,
-        due_date=date(2025, 8, 15),
-        phase_id=phase3.id
-    )
+    # 4️⃣ Tasks (a few per project)
+    tasks = [
+        Task(name="Lay foundation", status=TaskStatus.COMPLETED, estimated_budget=1_000_000, actual_budget=1_000_000, due_date=date(2024, 3, 10), phase_id=phases[0].id),
+        Task(name="Concrete frame setup", status=TaskStatus.IN_PROGRESS, estimated_budget=2_000_000, actual_budget=500_000, due_date=date(2025, 8, 10), phase_id=phases[1].id),
+        Task(name="HVAC Layout", status=TaskStatus.NOT_STARTED, estimated_budget=800_000, actual_budget=0, due_date=date(2025, 8, 15), phase_id=phases[2].id),
 
-    db.add_all([task1, task2, task3, task4, task5])
+        Task(name="Environmental clearance", status=TaskStatus.NOT_STARTED, estimated_budget=300_000, actual_budget=0, due_date=date(2024, 6, 1), phase_id=phases[3].id),
+        Task(name="Terminal blueprint", status=TaskStatus.NOT_STARTED, estimated_budget=900_000, actual_budget=0, due_date=date(2024, 7, 15), phase_id=phases[4].id),
+
+        Task(name="Office Demolition", status=TaskStatus.COMPLETED, estimated_budget=500_000, actual_budget=450_000, due_date=date(2023, 12, 1), phase_id=phases[5].id),
+        Task(name="Wiring reinstallation", status=TaskStatus.IN_PROGRESS, estimated_budget=400_000, actual_budget=200_000, due_date=date(2024, 8, 20), phase_id=phases[6].id),
+    ]
+    db.add_all(tasks)
     db.commit()
 
-    # -------------------------------------
-    # ✅ 5. Finance request
-    # -------------------------------------
-    finance = FinanceRequest(
-        project_id=project.id,
-        requested_amount=2000000,
-        approved_amount=500000,
-        request_date=date(2025, 8, 4)
-    )
-    db.add(finance)
+    # 5️⃣ Finance Requests (1 per project)
+    finances = [
+        FinanceRequest(project_id=project1.id, requested_amount=2_000_000, approved_amount=500_000, request_date=date(2025, 8, 4)),
+        FinanceRequest(project_id=project2.id, requested_amount=5_000_000, approved_amount=0, request_date=date(2024, 5, 5)),
+        FinanceRequest(project_id=project3.id, requested_amount=1_200_000, approved_amount=1_000_000, request_date=date(2024, 3, 12)),
+    ]
+    db.add_all(finances)
     db.commit()
+
+    print("✅ Sample data for 3 projects loaded.")

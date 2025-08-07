@@ -1,73 +1,97 @@
+from datetime import datetime, timedelta, date
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
-from app.db.models import Project
+from app.db.models import Project, WeeklyReport
 from app.utils.llm_generator import render_llm_prompt, generate_llm_report
 
-# ✅ New helper function to find deadline-based tasks
-def get_deadline_alerts(tasks):
-    today = datetime.now().date()
-    upcoming_threshold = today + timedelta(days=7)
 
-    overdue = []
-    upcoming = []
+def get_deadline_alerts(tasks):
+    today = date.today()
+    overdue_tasks = []
+    upcoming_tasks = []
 
     for task in tasks:
-        if not hasattr(task, 'due_date') or task.due_date is None:
-            continue
-        if task.due_date < today and task.status != "COMPLETED":
-            overdue.append(task)
-        elif today <= task.due_date <= upcoming_threshold and task.status != "COMPLETED":
-            upcoming.append(task)
+        if task.due_date:
+            if task.due_date < today and task.status != "COMPLETED":
+                overdue_tasks.append({
+                    "name": task.name,
+                    "due_date": task.due_date,
+                    "status": task.status,
+                    "days_overdue": (today - task.due_date).days
+                })
+            elif today <= task.due_date <= today + timedelta(days=7) and task.status != "COMPLETED":
+                upcoming_tasks.append({
+                    "name": task.name,
+                    "due_date": task.due_date,
+                    "status": task.status,
+                    "days_until_due": (task.due_date - today).days
+                })
 
-    return overdue, upcoming
+    return overdue_tasks, upcoming_tasks
 
-# ✅ Main function — with phase manager email added
-def generate_report(db: Session, channel: str = "gmail", language: str = "English", tone: str = "Formal", model: str = "gpt-3.5-turbo"):
-    # Fetch first project for demo purpose
-    project = db.query(Project).first()
+
+def generate_report(
+    db: Session,
+    project_id: int,
+    channel: str = "gmail",
+    language: str = "English",
+    tone: str = "Formal",
+    model: str = "gpt-3.5-turbo"
+):
+    project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        return {"error": "No project found in database."}
+        return {"error": "Project not found."}
 
-    # Extract related data
     phases = project.phases or []
-    tasks = []
-    for phase in phases:
-        tasks.extend(phase.tasks or [])
+    tasks = [task for phase in phases for task in phase.tasks or []]
 
-    # Optional finance data
     finance_data = {}
-    if hasattr(project, 'finance_requests') and project.finance_requests:
-        latest_request = project.finance_requests[-1]
+    if project.finance_requests:
+        latest = project.finance_requests[-1]
         finance_data = {
-            "requested_amount": latest_request.requested_amount,
-            "approved_amount": latest_request.approved_amount
+            "requested_amount": latest.requested_amount,
+            "approved_amount": latest.approved_amount
         }
 
-    # ✅ Deadline alerts
     overdue_tasks, upcoming_tasks = get_deadline_alerts(tasks)
 
-    # ✅ Build context for prompt
-    context = {
+    last_summary = db.query(WeeklyReport).filter(
+        WeeklyReport.project_id == project_id
+    ).order_by(WeeklyReport.report_date.desc()).first()
+
+    # Static placeholders (or replace with LLM later)
+    accomplishments = ["Foundation completed", "Finance request approved"]
+    recommendations = ["Complete beam testing ASAP", "Review HVAC contractor bids"]
+    risks = ["Beam testing is overdue", "Rain may delay HVAC layout"]
+    agenda_items = ["Finalize structural phase", "Discuss resource load"]
+    notes = ["Site inspection scheduled next Monday", "Contractor invoices pending"]
+
+    estimated_total = sum([t.estimated_budget or 0 for t in tasks])
+    actual_spent = sum([t.actual_budget or 0 for t in tasks])
+    budget_status = f"₹{actual_spent:,} / ₹{estimated_total:,}"
+    resource_status = "All team members are on track"
+
+    # -------------------------------------------
+    # 📌 Project Manager Report Context
+    # -------------------------------------------
+    project_context = {
+        "report_date": date.today(),
         "channel": channel,
         "language": language,
         "tone": tone,
         "project": {
             "project_name": project.name,
             "status": project.status,
-            "project_manager": project.manager,
+            "project_manager": project.manager.name,
             "start_date": project.start_date,
             "end_date": project.end_date
         },
         "phases": [
             {
+                "id": p.id,
                 "phase_name": p.name,
                 "status": p.status,
-                "id": p.id,
-                # ✅ New field for scheduler to send report
-                "phase_manager_email": getattr(p.phase_manager, "email", None),  # Safe access
-                "assistant_manager_email": getattr(p.assistant_manager, "email", None)  # Optional
-            }
-            for p in phases
+                "phase_manager_email": getattr(p.phase_manager, "email", None)
+            } for p in phases
         ],
         "tasks": [
             {
@@ -77,40 +101,93 @@ def generate_report(db: Session, channel: str = "gmail", language: str = "Englis
                 "actual_budget": t.actual_budget,
                 "due_date": t.due_date,
                 "phase_id": t.phase_id,
-                "phase_name": next((p.name for p in phases if p.id == t.phase_id), None)
-            }
-            for t in tasks
+                "phase_name": next((p.name for p in phases if p.id == t.phase_id), None),
+            } for t in tasks
         ],
         "finance": finance_data,
-
-        "overdue_tasks": [
-            {
-                "name": t.name,
-                "due_date": t.due_date,
-                "phase_name": next((p.name for p in phases if p.id == t.phase_id), None)
-            }
-            for t in overdue_tasks
-        ],
-        "upcoming_tasks": [
-            {
-                "name": t.name,
-                "due_date": t.due_date,
-                "phase_name": next((p.name for p in phases if p.id == t.phase_id), None)
-            }
-            for t in upcoming_tasks
-        ]
+        "overdue_tasks": overdue_tasks,
+        "upcoming_tasks": upcoming_tasks,
+        "summary_text": last_summary.summary_text if last_summary else None,
+        "accomplishments": accomplishments,
+        "tasks_completed": [t for t in tasks if t.status == "COMPLETED"],
+        "milestones": [t for t in tasks if "milestone" in t.name.lower()],
+        "risks": risks,
+        "budget_status": budget_status,
+        "resource_status": resource_status,
+        "recommendations": recommendations,
+        "agenda_items": agenda_items,
+        "notes": notes,
+        "sender_name": "Project Automation Bot",
+        "sender_position": "AI Assistant"
     }
 
-    # ✅ Render prompt and get LLM response
-    template_path = "app/templates/weekly_report_prompt.txt"
-    prompt = render_llm_prompt(template_path, context)
-    llm_output = generate_llm_report(prompt, model=model)
+    project_template_path = "app/templates/weekly_report_prompt.txt"
+    project_prompt = render_llm_prompt(project_template_path, project_context)
+    project_llm_output = generate_llm_report(project_prompt, model=model)
+
+    db.add(WeeklyReport(
+        project_id=project_id,
+        summary_text=project_llm_output,
+        report_date=date.today()
+    ))
+    db.commit()
+
+    # -------------------------------------------
+    # 📌 Phase Manager Reports (One per phase)
+    # -------------------------------------------
+    phase_reports = []
+    for phase in phases:
+        phase_tasks = [t for t in tasks if t.phase_id == phase.id]
+        overdue, upcoming = get_deadline_alerts(phase_tasks)
+
+        phase_context = {
+            "report_date": date.today(),
+            "channel": channel,
+            "language": language,
+            "tone": tone,
+            "project": {
+                "project_name": project.name,
+                "status": project.status,
+                "project_manager": project.manager.name,
+                "start_date": project.start_date,
+                "end_date": project.end_date
+            },
+            "phase": {
+                "id": phase.id,
+                "phase_name": phase.name,
+                "status": phase.status,
+                "phase_manager_email": getattr(phase.phase_manager, "email", None)
+            },
+            "tasks": phase_tasks,
+            "overdue_tasks": overdue,
+            "upcoming_tasks": upcoming,
+            "summary_text": last_summary.summary_text if last_summary else None,
+            "accomplishments": accomplishments,
+            "recommendations": recommendations,
+            "risks": risks,
+            "budget_status": budget_status,
+            "resource_status": resource_status,
+            "agenda_items": agenda_items,
+            "notes": notes,
+            "sender_name": "Project Automation Bot",
+            "sender_position": "AI Assistant"
+        }
+
+        phase_template_path = "app/templates/weekly_phase_manager_prompt.txt"
+        phase_prompt = render_llm_prompt(phase_template_path, phase_context)
+        phase_output = generate_llm_report(phase_prompt, model=model)
+
+        phase_reports.append({
+            "phase_id": phase.id,
+            "phase_name": phase.name,
+            "phase_manager_email": getattr(phase.phase_manager, "email", None),
+            "report": phase_output
+        })
 
     return {
-        "channel": channel,
-        "language": language,
-        "tone": tone,
-        "report": llm_output,
-        # ✅ Include phases in report_data for scheduler to use
-        "phases": context["phases"]
+        "project_id": project.id,
+        "project_name": project.name,
+        "project_manager_email": project.manager.email,
+        "project_report": project_llm_output,
+        "phases": phase_reports
     }

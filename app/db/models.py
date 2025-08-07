@@ -97,3 +97,16 @@ class FinanceRequest(Base):
     request_date = Column(Date)
 
     project = relationship("Project", back_populates="finance_requests")
+
+# ----------------------------------------------------
+# ✅ WEEKLY REPORT
+# ----------------------------------------------------
+class WeeklyReport(Base):
+    __tablename__ = "weekly_reports"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id"))
+    summary_text = Column(String)
+    report_date = Column(Date)
+
+    # Relationship
+    project = relationship("Project", backref="weekly_reports")
