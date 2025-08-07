@@ -43,7 +43,6 @@ class Project(Base):
     manager_id = Column(Integer, ForeignKey("users.id"))
     start_date = Column(Date)
     end_date = Column(Date)
-
     # Relationships
     manager = relationship("User", foreign_keys=[manager_id])
     phases = relationship("Phase", back_populates="project")

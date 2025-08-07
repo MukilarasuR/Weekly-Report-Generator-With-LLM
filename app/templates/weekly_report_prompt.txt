@@ -61,7 +61,8 @@ No deadline alerts for this week.
 --------------------------------------------------
 
 📝 Summary:
-{{summary_text or "Please generate a summary based on the phase and task progress."}}
+
+Please write a comprehensive paragraph summarizing the overall progress of the "{{ project.project_name }}" project. Include key highlights such as current phase statuses, financial utilization, critical deadlines (overdue or upcoming), and any notable risks or dependencies. Keep it concise but informative for a project manager to understand the overall project health at a glance.
 
 Kindly contact the respective phase managers for detailed updates.  
 If you have any questions or need further assistance, please feel free to reach out.
