@@ -1,57 +1,128 @@
-Weekly Project Report  
+Subject: 📋 Weekly Progress Report – {{ phase.phase_name }} Phase | {{ project.project_name }}
+
 Date: {{ report_date.strftime('%d %B %Y') }}
 
-1. Project Overview:
-- Project Name: {{ project.name }}
-- Project Manager: {{ project.manager.name }}
-- Project Status: {{ project.status }}
+Dear {{ phase.phase_manager_email or "Phase Manager" }},
 
-2. Key Accomplishments this Week:
+I hope this message finds you well. Please find below the detailed weekly progress report for the **{{ phase.phase_name }}** phase of the project **“{{ project.project_name }}”**.
+
+---
+
+### 🏗️ 1. Project Overview:
+- **Project Name:** {{ project.project_name }}
+- **Overall Status:** {{ project.status }}
+- **Project Duration:** {{ project.start_date.strftime('%d %b %Y') }} to {{ project.end_date.strftime('%d %b %Y') }}
+- **Project Manager:** {{ project.project_manager }}
+
+---
+
+### ✅ 2. Accomplishments This Week:
+{% if accomplishments %}
 {% for item in accomplishments %}
 - {{ item }}
 {% endfor %}
+{% else %}
+- No major accomplishments recorded this week.
+{% endif %}
 
-3. Tasks Completed this Week:
-{% for task in tasks_completed %}
-- {{ task.name }} (Completed on {{ task.completed_date.strftime('%d %b %Y') if task.completed_date else 'N/A' }})
+---
+
+### 📌 3. Phase Summary:
+- **Phase Name:** {{ phase.phase_name }}
+- **Current Status:** {{ phase.status }}
+- **Responsible Manager:** {{ phase.phase_manager_email or "Not Assigned" }}
+
+---
+
+### 📋 4. Tasks Completed This Week:
+{% if tasks_completed %}
+{% for task in tasks_completed if task.phase_id == phase.id and task.status == 'COMPLETED' %}
+- {{ task.name }} – Completed on {{ task.completed_date.strftime('%d %b %Y') if task.completed_date else 'N/A' }}
 {% endfor %}
+{% else %}
+- No tasks were marked as completed this week.
+{% endif %}
 
-4. Upcoming Tasks for Next Week:
-{% for task in upcoming_tasks %}
-- {{ task.name }} (Due: {{ task.due_date.strftime('%d %b %Y') }})
+---
+
+### 🕒 5. Upcoming Tasks (Next 7 Days):
+{% if upcoming_tasks %}
+{% for task in upcoming_tasks if task.phase_id == phase.id %}
+- {{ task.name }} – Due on {{ task.due_date.strftime('%d %b %Y') }}
 {% endfor %}
+{% else %}
+- No upcoming deadlines for this phase next week.
+{% endif %}
 
-5. Risks and Issues:
+---
+
+### ⚠️ 6. Risks and Issues:
 {% if risks %}
 {% for risk in risks %}
 - {{ risk }}
 {% endfor %}
 {% else %}
-- None reported this week.
+- No significant risks or issues reported.
 {% endif %}
 
-6. Milestones:
-{% for milestone in milestones %}
-- {{ milestone.name }} – {{ milestone.status }}
+---
+
+### 🎯 7. Key Milestones:
+{% if milestones %}
+{% for milestone in milestones if milestone.phase_id == phase.id %}
+- {{ milestone.name }} – Status: {{ milestone.status }}
 {% endfor %}
+{% else %}
+- No milestones defined for this phase.
+{% endif %}
 
-7. Budget and Resource Updates:
-- Budget: ₹{{ budget_status }}
-- Resources: {{ resource_status }}
+---
 
-8. Recommendations:
+### 💰 8. Budget & Resource Updates:
+- **Budget Utilization (Phase Total):** ₹{{ budget_status }}
+- **Team Resources:** {{ resource_status }}
+
+---
+
+### 🧠 9. Recommendations:
+{% if recommendations %}
 {% for rec in recommendations %}
 - {{ rec }}
 {% endfor %}
+{% else %}
+- No new recommendations this week.
+{% endif %}
 
-9. Next Weekly Meeting Agenda:
+---
+
+### 🗓️ 10. Agenda for Next Meeting:
+{% if agenda_items %}
 {% for agenda in agenda_items %}
 - {{ agenda }}
 {% endfor %}
+{% else %}
+- No agenda items submitted for upcoming meeting.
+{% endif %}
 
-10. Additional Notes:
+---
+
+### 📝 11. Additional Notes:
+{% if notes %}
 {% for note in notes %}
 - {{ note }}
 {% endfor %}
+{% else %}
+- No additional comments noted this week.
+{% endif %}
 
-Please let me know if you need any further information or details.
+---
+
+Please review the above points and feel free to share your feedback or concerns regarding the phase progress.
+
+Warm regards,  
+**{{ sender_name or "Project Reporting Assistant" }}**  
+{{ sender_position or "Automated Weekly Report System" }}  
+{{ project.project_name }}
+
+---
+
